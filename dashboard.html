@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Native Code Collaboration Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #e8e8e8;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .card {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            background: #f0f4ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e8f0ff;
+            border-color: #667eea;
+            transform: scale(1.02);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-admin {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .badge-write {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .badge-read {
+            background: #95e1d3;
+            color: #333;
+        }
+
+        .version-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .version-info {
+            flex: 1;
+        }
+
+        .version-info h4 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .version-info p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .file-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .file-item.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .log-entry {
+            background: white;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .log-entry.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .log-entry.warning {
+            border-left-color: #ffc107;
+            background: #fffef0;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .stat-card h4 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .number {
+            color: #667eea;
+            font-size: 32px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>☁️ Cloud Native Code Collaboration Platform</h1>
+            <p>Manage your code files with version control and team collaboration</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('upload')">📤 Upload Files</button>
+            <button class="tab" onclick="switchTab('versions')">📋 Version History</button>
+            <button class="tab" onclick="switchTab('acl')">👥 Access Control</button>
+            <button class="tab" onclick="switchTab('logs')">📊 Activity Logs</button>
+        </div>
+
+        <div class="content">
+            <!-- Upload Section -->
+            <div id="upload" class="section active">
+                <div class="stats">
+                    <div class="stat-card">
+                        <h4>Total Files</h4>
+                        <div class="number" id="totalFiles">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Storage Used</h4>
+                        <div class="number" id="storageUsed">0 MB</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Team Members</h4>
+                        <div class="number" id="teamMembers">0</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Upload Code Files to S3</h3>
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                        <p style="font-size: 48px; margin-bottom: 10px;">📁</p>
+                        <p style="font-size: 18px; color: #667eea; font-weight: 500;">Click to select files or drag and drop</p>
+                        <p style="color: #999; margin-top: 10px;">Supports all file types</p>
+                    </div>
+                    <input type="file" id="fileInput" multiple>
+                    
+                    <div id="selectedFiles" style="margin-top: 20px;"></div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button class="btn" onclick="uploadFiles()" id="uploadBtn" disabled>Upload Selected Files</button>
+                    </div>
+                    
+                    <div class="status-message" id="uploadStatus"></div>
+                    <div class="loading" id="uploadLoading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 10px;">Uploading files...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Version History Section -->
+            <div id="versions" class="section">
+                <div class="card">
+                    <h3>File Version History</h3>
+                    <div class="input-group">
+                        <label>Select File:</label>
+                        <select id="fileSelect" onchange="loadVersions()">
+                            <option value="">-- Select a file --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="loading" id="versionsLoading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 10px;">Loading versions...</p>
+                    </div>
+                    
+                    <div id="versionsList"></div>
+                </div>
+            </div>
+
+            <!-- ACL Section -->
+            <div id="acl" class="section">
+                <div class="card">
+                    <h3>Team Access Control</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Manage who has access to your project files</p>
+                    
+                    <div class="loading" id="aclLoading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 10px;">Loading ACL data...</p>
+                    </div>
+                    
+                    <table id="aclTable">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Permission Level</th>
+                                <th>Granted On</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aclTableBody">
+                        </tbody>
+                    </table>
+                    
+                    <div style="margin-top: 30px;">
+                        <h3>Add Team Member</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin-top: 15px;">
+                            <input type="email" id="newUserEmail" placeholder="Email address" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                            <input type="text" id="newUserName" placeholder="Full name" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                            <select id="newUserPermission" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                                <option value="read">Read</option>
+                                <option value="write">Write</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button class="btn" onclick="addTeamMember()">Add Member</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Section -->
+            <div id="logs" class="section">
+                <div class="card">
+                    <h3>Activity Logs (CloudWatch Integration)</h3>
+                    <p style="color: #666; margin-bottom: 20px;">View all activities and system events</p>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn" onclick="loadLogs()">Refresh Logs</button>
+                        <select id="logFilter" style="margin-left: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="all">All Logs</option>
+                            <option value="upload">Upload Events</option>
+                            <option value="download">Download Events</option>
+                            <option value="acl">ACL Changes</option>
+                            <option value="error">Errors Only</option>
+                        </select>
+                    </div>
+                    
+                    <div class="loading" id="logsLoading">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 10px;">Loading logs...</p>
+                    </div>
+                    
+                    <div id="logsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Replace with your API Gateway endpoints
+        const API_CONFIG = {
+            uploadEndpoint: 'https://your-api-gateway.amazonaws.com/prod/upload',
+            versionsEndpoint: 'https://your-api-gateway.amazonaws.com/prod/versions',
+            downloadEndpoint: 'https://your-api-gateway.amazonaws.com/prod/download',
+            aclEndpoint: 'https://your-api-gateway.amazonaws.com/prod/acl',
+            logsEndpoint: 'https://your-api-gateway.amazonaws.com/prod/logs'
+        };
+
+        // Mock data for demo purposes
+        const mockData = {
+            files: [
+                { name: 'app.js', size: 15420, uploadedAt: '2025-10-20' },
+                { name: 'index.html', size: 8500, uploadedAt: '2025-10-21' },
+                { name: 'styles.css', size: 12300, uploadedAt: '2025-10-22' }
+            ],
+            acl: [
+                { user: 'John Doe', email: 'john@example.com', permission: 'admin', grantedOn: '2025-10-15' },
+                { user: 'Jane Smith', email: 'jane@example.com', permission: 'write', grantedOn: '2025-10-18' },
+                { user: 'Bob Johnson', email: 'bob@example.com', permission: 'read', grantedOn: '2025-10-20' }
+            ],
+            logs: [
+                { timestamp: '2025-10-27 10:30:45', user: 'john@example.com', action: 'Uploaded file app.js', type: 'upload' },
+                { timestamp: '2025-10-27 10:25:12', user: 'jane@example.com', action: 'Downloaded version 2 of index.html', type: 'download' },
+                { timestamp: '2025-10-27 10:20:33', user: 'john@example.com', action: 'Added Bob Johnson to team', type: 'acl' },
+                { timestamp: '2025-10-27 10:15:08', user: 'system', action: 'Failed upload attempt - permission denied', type: 'error' }
+            ]
+        };
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName === 'versions') loadFileList();
+            if (tabName === 'acl') loadACL();
+            if (tabName === 'logs') loadLogs();
+        }
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        let selectedFiles = [];
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            handleFileSelection(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            handleFileSelection(files);
+        });
+
+        function handleFileSelection(files) {
+            selectedFiles = files;
+            displaySelectedFiles();
+            document.getElementById('uploadBtn').disabled = files.length === 0;
+        }
+
+        function displaySelectedFiles() {
+            const container = document.getElementById('selectedFiles');
+            if (selectedFiles.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            let html = '<h4 style="margin-bottom: 10px;">Selected Files:</h4>';
+            selectedFiles.forEach(file => {
+                html += `
+                    <div class="file-item">
+                        <strong>${file.name}</strong> - ${(file.size / 1024).toFixed(2)} KB
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        async function uploadFiles() {
+            const statusMsg = document.getElementById('uploadStatus');
+            const loading = document.getElementById('uploadLoading');
+            
+            if (selectedFiles.length === 0) {
+                showStatus('Please select files to upload', 'error');
+                return;
+            }
+            
+            loading.style.display = 'block';
+            statusMsg.style.display = 'none';
+            
+            // Simulate upload (replace with actual API call)
+            setTimeout(() => {
+                loading.style.display = 'none';
+                showStatus(`Successfully uploaded ${selectedFiles.length} file(s) to S3!`, 'success');
+                
+                // Update stats
+                document.getElementById('totalFiles').textContent = 
+                    parseInt(document.getElementById('totalFiles').textContent) + selectedFiles.length;
+                
+                // Clear selection
+                selectedFiles = [];
+                fileInput.value = '';
+                displaySelectedFiles();
+                document.getElementById('uploadBtn').disabled = true;
+            }, 2000);
+            
+            // Actual implementation would be:
+            /*
+            for (const file of selectedFiles) {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch(API_CONFIG.uploadEndpoint, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Authorization': 'Bearer ' + getAuthToken()
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+            }
+            */
+        }
+
+        function showStatus(message, type) {
+            const statusMsg = document.getElementById('uploadStatus');
+            statusMsg.className = `status-message ${type}`;
+            statusMsg.textContent = message;
+            statusMsg.style.display = 'block';
+            
+            setTimeout(() => {
+                statusMsg.style.display = 'none';
+            }, 5000);
+        }
+
+        // Load file list for version history
+        function loadFileList() {
+            const select = document.getElementById('fileSelect');
+            select.innerHTML = '<option value="">-- Select a file --</option>';
+            
+            mockData.files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.name;
+                option.textContent = file.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Load versions for selected file
+        function loadVersions() {
+            const fileName = document.getElementById('fileSelect').value;
+            const versionsList = document.getElementById('versionsList');
+            const loading = document.getElementById('versionsLoading');
+            
+            if (!fileName) {
+                versionsList.innerHTML = '';
+                return;
+            }
+            
+            loading.style.display = 'block';
+            
+            // Simulate API call
+            setTimeout(() => {
+                loading.style.display = 'none';
+                
+                // Mock versions
+                const versions = [
+                    { versionId: 'v5', date: '2025-10-27 10:30', size: '15.4 KB', user: 'john@example.com' },
+                    { versionId: 'v4', date: '2025-10-26 15:20', size: '15.2 KB', user: 'jane@example.com' },
+                    { versionId: 'v3', date: '2025-10-25 09:45', size: '14.8 KB', user: 'john@example.com' },
+                    { versionId: 'v2', date: '2025-10-24 14:10', size: '14.5 KB', user: 'john@example.com' },
+                    { versionId: 'v1', date: '2025-10-20 11:00', size: '12.3 KB', user: 'john@example.com' }
+                ];
+                
+                let html = '';
+                versions.forEach(version => {
+                    html += `
+                        <div class="version-item">
+                            <div class="version-info">
+                                <h4>Version ${version.versionId}</h4>
+                                <p>📅 ${version.date} | 👤 ${version.user} | 📦 ${version.size}</p>
+                            </div>
+                            <div>
+                                <button class="btn btn-secondary" onclick="viewVersion('${fileName}', '${version.versionId}')">View</button>
+                                <button class="btn" onclick="downloadVersion('${fileName}', '${version.versionId}')">Download</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                versionsList.innerHTML = html;
+            }, 1000);
+        }
+
+        function viewVersion(fileName, versionId) {
+            alert(`Viewing ${fileName} - ${versionId}\n\nThis would open a code viewer/diff tool in a modal.`);
+        }
+
+        function downloadVersion(fileName, versionId) {
+            alert(`Downloading ${fileName} - ${versionId}\n\nIn production, this would download from S3 with the specific version ID.`);
+            // Actual implementation:
+            // window.location.href = `${API_CONFIG.downloadEndpoint}?file=${fileName}&version=${versionId}`;
+        }
+
+        // Load ACL data
+        function loadACL() {
+            const loading = document.getElementById('aclLoading');
+            const tableBody = document.getElementById('aclTableBody');
+            
+            loading.style.display = 'block';
+            
+            setTimeout(() => {
+                loading.style.display = 'none';
+                
+                let html = '';
+                mockData.acl.forEach((member, index) => {
+                    const badgeClass = `badge-${member.permission}`;
+                    html += `
+                        <tr>
+                            <td><strong>${member.user}</strong></td>
+                            <td>${member.email}</td>
+                            <td><span class="badge ${badgeClass}">${member.permission.toUpperCase()}</span></td>
+                            <td>${member.grantedOn}</td>
+                            <td>
+                                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 14px;" onclick="editPermission(${index})">Edit</button>
+                                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 14px;" onclick="removeMember(${index})">Remove</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tableBody.innerHTML = html;
+                document.getElementById('teamMembers').textContent = mockData.acl.length;
+            }, 1000);
+        }
+
+        function editPermission(index) {
+            const member = mockData.acl[index];
+            const newPermission = prompt(`Change permission for ${member.user}:\n\nCurrent: ${member.permission}\n\nEnter new permission (read/write/admin):`, member.permission);
+            
+            if (newPermission && ['read', 'write', 'admin'].includes(newPermission.toLowerCase())) {
+                mockData.acl[index].permission = newPermission.toLowerCase();
+                loadACL();
+                alert('Permission updated successfully!');
+            }
+        }
+
+        function removeMember(index) {
+            const member = mockData.acl[index];
+            if (confirm(`Remove ${member.user} from the team?`)) {
+                mockData.acl.splice(index, 1);
+                loadACL();
+                alert('Team member removed successfully!');
+            }
+        }
+
+        function addTeamMember() {
+            const email = document.getElementById('newUserEmail').value;
+            const name = document.getElementById('newUserName').value;
+            const permission = document.getElementById('newUserPermission').value;
+            
+            if (!email || !name) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            if (!email.includes('@')) {
+                alert('Please enter a valid email address');
+                return;
+            }
+            
+            const newMember = {
+                user: name,
+                email: email,
+                permission: permission,
+                grantedOn: new Date().toISOString().split('T')[0]
+            };
+            
+            mockData.acl.push(newMember);
+            loadACL();
+            
+            // Clear form
+            document.getElementById('newUserEmail').value = '';
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserPermission').value = 'read';
+            
+            alert('Team member added successfully!');
+        }
+
+        // Load activity logs
+        function loadLogs() {
+            const loading = document.getElementById('logsLoading');
+            const logsList = document.getElementById('logsList');
+            const filter = document.getElementById('logFilter').value;
+            
+            loading.style.display = 'block';
+            
+            setTimeout(() => {
+                loading.style.display = 'none';
+                
+                let filteredLogs = mockData.logs;
+                if (filter !== 'all') {
+                    filteredLogs = mockData.logs.filter(log => log.type === filter);
+                }
+                
+                let html = '';
+                filteredLogs.forEach(log => {
+                    const logClass = log.type === 'error' ? 'error' : (log.type === 'acl' ? 'warning' : '');
+                    html += `
+                        <div class="log-entry ${logClass}">
+                            <strong>[${log.timestamp}]</strong> ${log.user}: ${log.action}
+                        </div>
+                    `;
+                });
+                
+                if (html === '') {
+                    html = '<p style="text-align: center; color: #999; padding: 40px;">No logs found for the selected filter.</p>';
+                }
+                
+                logsList.innerHTML = html;
+            }, 1000);
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial stats
+            document.getElementById('totalFiles').textContent = mockData.files.length;
+            document.getElementById('storageUsed').textContent = '156 MB';
+            document.getElementById('teamMembers').textContent = mockData.acl.length;
+            
+            // Load initial data
+            loadFileList();
+        });
+    </script>
+</body>
+</html>
