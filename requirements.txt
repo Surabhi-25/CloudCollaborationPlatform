@@ -1,0 +1,14 @@
+
+fastapi
+
+
+uvicorn[standard]
+
+
+requests
+
+
+PyJWT
+
+
+python-dotenv
