@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S3 Upload Simulator</title>
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .container {
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6 font-sans">
+
+    <div class="container mx-auto p-8 bg-white shadow-2xl rounded-xl border-t-4 border-indigo-600">
+        <h1 class="text-3xl font-extrabold mb-6 text-gray-900">Secure File Uploader (Simulated)</h1>
+
+        <div id="authSection" class="mb-6 p-4 border rounded-lg bg-indigo-50">
+            <h2 class="text-xl font-semibold mb-3 text-indigo-700">1. Authentication</h2>
+            <input type="text" id="userId" value="web-user-123" placeholder="Enter User ID"
+                   class="w-full p-2 border border-indigo-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 mb-2">
+            <button id="loginBtn" class="w-full bg-indigo-600 text-white p-2 rounded-lg font-bold hover:bg-indigo-700 transition duration-150 shadow-md">
+                Login and Get Fresh JWT Token
+            </button>
+            <p id="tokenStatus" class="mt-2 text-sm text-gray-600 font-medium">Status: Not Logged In</p>
+        </div>
+
+        <div id="uploadSection" class="p-4 border rounded-lg bg-white shadow-inner" style="display: none;">
+            <h2 class="text-xl font-semibold mb-3 text-gray-700">2. File Upload</h2>
+            <input type="file" id="fileInput" class="w-full p-2 border border-gray-300 rounded-lg mb-4">
+            <button id="uploadBtn" class="w-full bg-green-600 text-white p-2 rounded-lg font-bold hover:bg-green-700 transition duration-150 shadow-md" disabled>
+                Request URL & Upload to S3
+            </button>
+        </div>
+
+        <div id="results" class="mt-8 p-4 bg-gray-50 rounded-lg border">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">3. Results Log</h2>
+            <code id="logOutput" class="block p-3 bg-white border rounded-md text-xs text-gray-800 break-all min-h-[100px] overflow-auto">Awaiting login...</code>
+        </div>
+    </div>
+
+    <script>
+        const AUTH_SERVICE_URL = 'http://127.0.0.1:8081';
+        const FILE_HANDLER_URL = 'http://127.0.0.1:8083';
+
+        const userIdInput = document.getElementById('userId');
+        const loginBtn = document.getElementById('loginBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const logOutput = document.getElementById('logOutput');
+        const tokenStatus = document.getElementById('tokenStatus');
+        const uploadSection = document.getElementById('uploadSection');
+        
+        let currentToken = null;
+
+        // --- Logging Helper ---
+        function log(message, isError = false) {
+            const statusClass = isError ? 'text-red-500' : 'text-gray-800';
+            logOutput.innerHTML += `<span class="${statusClass}">[${new Date().toLocaleTimeString()}] ${message}</span><br>`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        // --- Step 1: Get JWT Token ---
+        async function getToken() {
+            const userId = userIdInput.value;
+            log(`Attempting to log in user: ${userId}...`);
+            tokenStatus.textContent = 'Status: Fetching Token...';
+            
+            try {
+                const response = await fetch(`${AUTH_SERVICE_URL}/login/${userId}`);
+                if (!response.ok) {
+                    throw new Error(`Authentication failed (${response.status})`);
+                }
+                const data = await response.json();
+                
+                currentToken = data.token;
+                
+                tokenStatus.textContent = `Status: Logged In! (Token valid for ~24 hours)`;
+                tokenStatus.classList.remove('text-gray-600');
+                tokenStatus.classList.add('text-green-600');
+                uploadSection.style.display = 'block';
+                uploadBtn.disabled = false;
+                log(`✅ Token received successfully. Length: ${currentToken.length} chars.`, false);
+                
+            } catch (error) {
+                log(`❌ Login Failed. Check Auth Service (8081) and CORS: ${error.message}`, true);
+                tokenStatus.textContent = 'Status: Login Failed.';
+                tokenStatus.classList.add('text-red-600');
+                currentToken = null;
+                uploadBtn.disabled = true;
+            }
+        }
+
+        // --- Step 2 & 3: Request Presigned URL and Simulate Upload ---
+        async function handleUpload() {
+            if (!currentToken) {
+                log("Error: Must log in first to get a token.", true);
+                return;
+            }
+            const file = fileInput.files[0];
+            if (!file) {
+                log("Please select a file first.", true);
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            log("1. Requesting Presigned URL from File Handler (8083)...");
+
+            try {
+                // --- Step 2: Request Presigned URL ---
+                const presignResponse = await fetch(`${FILE_HANDLER_URL}/upload_url`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        file_name: file.name,
+                        mime_type: file.type || 'application/octet-stream'
+                    })
+                });
+
+                if (!presignResponse.ok) {
+                    const error = await presignResponse.json();
+                    throw new Error(`File Handler Error: ${error.detail || presignResponse.statusText}`);
+                }
+
+                const presignData = await presignResponse.json();
+                const uploadUrl = presignData.upload_url;
+                const fileId = presignData.file_id;
+
+                log(`✅ Presigned URL received for File ID: ${fileId}.`, false);
+                log(`   URL starts with: ${uploadUrl.substring(0, 50)}...`, false);
+                
+                // --- Step 3: Simulate Direct Upload to S3 (Mock/Real) ---
+                log(`2. Simulating direct PUT upload to that URL...`);
+
+                // NOTE: This fetch call would be the actual file upload to S3.
+                // Since your backend is mocking the S3 URL, this will likely fail 
+                // but proves the client-side interaction is correct.
+                
+                // For a real S3 upload, the headers here would be minimal (Content-Type)
+                const uploadResult = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': file.type || 'application/octet-stream',
+                        // S3 upload requires correct Content-Length but is complex to calculate in JS
+                        // We rely on browser handling for simplicity here.
+                    },
+                    body: file
+                });
+                
+                if (uploadResult.ok) {
+                    log(`🎉 Successfully simulated upload! (Status ${uploadResult.status})`, false);
+                } else {
+                    log(`⚠️ WARNING: Upload to S3 URL failed. (Status ${uploadResult.status}). This is expected because your backend returns a mock URL, not a real S3 endpoint.`, true);
+                }
+
+            } catch (error) {
+                log(`❌ Full Workflow Failed: ${error.message}`, true);
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        }
+
+        // --- Event Listeners ---
+        loginBtn.addEventListener('click', getToken);
+        uploadBtn.addEventListener('click', handleUpload);
+        
+        // Disable upload button until login is successful
+        uploadBtn.disabled = true;
+    </script>
+</body>
+</html>
