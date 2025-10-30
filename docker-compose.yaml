@@ -3,46 +3,54 @@ version: '3.8'
 services:
   # --- 1. Auth Service (External Port 8081) ---
   auth-service:
-    build: .
-    container_name: auth-service
+    # Build context points to the directory where the Dockerfile is located
+    # FIX: Updated path to include 'microservices/'
+    build: ./microservices/auth_service
+    container_name: auth_service
     ports:
+      # Maps host port 8081 to container port 80 (FastAPI default)
       - "8081:80"
-    # CRITICAL: Mounts the local code into the container so file changes are visible.
     volumes:
-      - .:/app
-    environment:
-      SERVICE_PORT: 80
-    # Uses 'sh -c' and '--reload' to automatically pick up file changes.
+      # FIX: Updated path to include 'microservices/'
+      - ./microservices/auth_service:/app
+    # Uses 'sh -c' for reliable execution and '--reload' for development
     command: sh -c "uvicorn auth_service:app --host 0.0.0.0 --port 80 --reload"
     restart: always
 
   # --- 2. Metadata Service (External Port 8082) ---
   metadata-service:
-    build: .
-    container_name: metadata-service
+    # FIX: Updated path to include 'microservices/'
+    build: ./microservices/metadata_service
+    container_name: metadata_service
     ports:
       - "8082:80"
     volumes:
-      - .:/app
-    environment:
-      SERVICE_PORT: 80
+      # FIX: Updated path to include 'microservices/'
+      - ./microservices/metadata_service:/app
     command: sh -c "uvicorn metadata_service:app --host 0.0.0.0 --port 80 --reload"
     restart: always
+    depends_on:
+      # FIX: Changed from 'auth_service' to the service key 'auth-service'
+      - auth-service
 
   # --- 3. File Handler Service (External Port 8083) ---
   file-handler-service:
-    build: .
-    container_name: file-handler-service
+    # FIX: Updated path to include 'microservices/'
+    build: ./microservices/file_handler_service
+    container_name: file_handler_service
     ports:
       - "8083:80"
     volumes:
-      - .:/app
+      # FIX: Updated path to include 'microservices/'
+      - ./microservices/file_handler_service:/app
     environment:
-      SERVICE_PORT: 80
-      # CRITICAL: This is how the file handler finds the metadata service
-      METADATA_SERVICE_URL: http://metadata-service:80
+      # CRITICAL: Internal service communication path. 
+      # Uses the container name (`metadata_service`) as the hostname. This is correct.
+      METADATA_SERVICE_URL: http://metadata_service:80
     command: sh -c "uvicorn file_handler_service:app --host 0.0.0.0 --port 80 --reload"
     restart: always
     depends_on:
+      # FIX: Changed from 'auth_service' to 'auth-service'
       - auth-service
+      # FIX: Changed from 'metadata_service' to 'metadata-service'
       - metadata-service
